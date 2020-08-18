@@ -29,6 +29,8 @@
 #include "Configurator.h"
 #include "SimpleShell.h"
 #include "TemperatureControlPublicAccess.h"
+#include "swencoder0.h"
+#include "hwencoder.h"
 
 #ifndef NO_TOOLS_LASER
 #include "Laser.h"
@@ -167,7 +169,9 @@ Kernel::Kernel()
     this->add_module( this->gcode_dispatch = new GcodeDispatch() );
     this->add_module( this->robot          = new Robot()         );
     this->add_module( this->simpleshell    = new SimpleShell()   );
-
+    this->add_module( this->swe0           = new SwEncoder0()    );
+    this->add_module( this->hwe            = new HwEncoder()     );
+    
     this->planner = new Planner();
     this->configurator = new Configurator();
 }

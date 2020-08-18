@@ -9,6 +9,7 @@
 
 #include "Module.h"
 #include "Pin.h"
+#include "mbed.h"
 
 class StepperMotor  : public Module {
     public:
@@ -17,6 +18,7 @@ class StepperMotor  : public Module {
 
         void set_motor_id(uint8_t id) { motor_id= id; }
         uint8_t get_motor_id() const { return motor_id; }
+        mbed::Timeout t;
 
         // called from step ticker ISR
         inline bool step() { step_pin.set(1); current_position_steps += (direction?-1:1); return moving; }
@@ -24,6 +26,8 @@ class StepperMotor  : public Module {
         inline void unstep() { step_pin.set(0); }
         // called from step ticker ISR
         inline void set_direction(bool f) { dir_pin.set(f); direction= f; }
+        // perform a step
+        inline void man_step() { step(); this->t.attach_us(this, &StepperMotor::unstep, 3); }
 
         void enable(bool state) { en_pin.set(!state); };
         bool is_enabled() const { return !en_pin.get(); };
@@ -82,4 +86,3 @@ class StepperMotor  : public Module {
             bool extruder:1;
         };
 };
-

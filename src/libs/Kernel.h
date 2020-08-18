@@ -11,6 +11,8 @@
 #define THEKERNEL Kernel::instance
 #define THECONVEYOR THEKERNEL->conveyor
 #define THEROBOT THEKERNEL->robot
+#define SWE0 THEKERNEL->swe0
+#define HWE THEKERNEL->hwe
 
 #include "Module.h"
 #include <array>
@@ -32,6 +34,8 @@ class Adc;
 class PublicData;
 class SimpleShell;
 class Configurator;
+class SwEncoder0;
+class HwEncoder;
 
 class Kernel {
     public:
@@ -70,7 +74,8 @@ class Kernel {
         Conveyor*         conveyor;
         Configurator*     configurator;
         SimpleShell*      simpleshell;
-
+        SwEncoder0*       swe0;
+        HwEncoder*        hwe;
         SlowTicker*       slow_ticker;
         StepTicker*       step_ticker;
         Adc*              adc;

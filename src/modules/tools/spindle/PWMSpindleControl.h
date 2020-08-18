@@ -13,8 +13,10 @@
 
 namespace mbed {
     class PwmOut;
-    class InterruptIn;
+    class InterruptIn;    
 }
+
+class Pin;
 
 // This module implements closed loop PID control for spindle RPM.
 class PWMSpindleControl: public SpindleControl {
@@ -27,22 +29,27 @@ class PWMSpindleControl: public SpindleControl {
         
         void on_pin_rise();
         uint32_t on_update_speed(uint32_t dummy);
-        
+        uint32_t tick_counter(uint32_t dummy);
+
+        std::string reverse_dir_pin; 
+        Pin *reverse_dir; // digital output pin for reverse
         mbed::PwmOut *pwm_pin; // PWM output for spindle speed control
         mbed::InterruptIn *feedback_pin; // Interrupt pin for measuring speed
-        bool output_inverted;
-       
+        bool output_inverted;               
+               
         bool vfd_spindle; // true if we have a VFD driven spindle
 
         // Current values, updated at runtime
         float current_rpm;
         float target_rpm;
+        float default_rpm;
+        float max_rpm;
         float current_I_value;
         float prev_error;
         float current_pwm_value;
         int time_since_update;
         uint32_t last_irq;
-
+       
         // Values from config
         float pulses_per_rev;
         float control_P_term;
@@ -57,6 +64,7 @@ class PWMSpindleControl: public SpindleControl {
         volatile uint32_t irq_count;
         
         void turn_on(void);
+        void turn_on_rev(void);
         void turn_off(void);
         void set_speed(int);
         void report_speed(void);

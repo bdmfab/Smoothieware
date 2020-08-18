@@ -34,6 +34,7 @@
 #define spindle_control_I_checksum          CHECKSUM("control_I")
 #define spindle_control_D_checksum          CHECKSUM("control_D")
 #define spindle_control_smoothing_checksum  CHECKSUM("control_smoothing")
+#define spindle_reverse_dir_pin_checksum    CHECKSUM("reverse_dir_pin")
 
 #define UPDATE_FREQ 1000
 
@@ -53,7 +54,7 @@ void PWMSpindleControl::on_module_loaded()
     spindle_on = false;
     
     pulses_per_rev = THEKERNEL->config->value(spindle_checksum, spindle_pulses_per_rev_checksum)->by_default(1.0f)->as_number();
-    target_rpm = THEKERNEL->config->value(spindle_checksum, spindle_default_rpm_checksum)->by_default(5000.0f)->as_number();
+    target_rpm = THEKERNEL->config->value(spindle_checksum, spindle_default_rpm_checksum)->by_default(5000.0f)->as_number();    
     control_P_term = THEKERNEL->config->value(spindle_checksum, spindle_control_P_checksum)->by_default(0.0001f)->as_number();
     control_I_term = THEKERNEL->config->value(spindle_checksum, spindle_control_I_checksum)->by_default(0.0001f)->as_number();
     control_D_term = THEKERNEL->config->value(spindle_checksum, spindle_control_D_checksum)->by_default(0.0001f)->as_number();
@@ -64,6 +65,7 @@ void PWMSpindleControl::on_module_loaded()
         smoothing_decay = 1.0f;
     else
         smoothing_decay = 1.0f / (UPDATE_FREQ * smoothing_time);
+             
 
     // Get the pin for hardware pwm
     {
@@ -104,8 +106,16 @@ void PWMSpindleControl::on_module_loaded()
         }
         delete smoothie_pin;
     }
+
+    // Get digital out pin for reverse direction
+    reverse_dir_pin = THEKERNEL->config->value(spindle_checksum, spindle_reverse_dir_pin_checksum)->by_default("nc")->as_string();
+    reverse_dir = NULL;
+    if(reverse_dir_pin.compare("nc") != 0) {
+        reverse_dir = new Pin();
+        reverse_dir->from_string(reverse_dir_pin)->as_output()->set(false);
+    }
     
-    THEKERNEL->slow_ticker->attach(UPDATE_FREQ, this, &PWMSpindleControl::on_update_speed);
+    THEKERNEL->slow_ticker->attach(UPDATE_FREQ, this, &PWMSpindleControl::on_update_speed);       
 }
 
 void PWMSpindleControl::on_pin_rise()
@@ -139,19 +149,20 @@ uint32_t PWMSpindleControl::on_update_speed(uint32_t dummy)
     }
 
     if (spindle_on) {
+
         float error = target_rpm - current_rpm;
 
         current_I_value += control_I_term * error * 1.0f / UPDATE_FREQ;
         current_I_value = confine(current_I_value, -1.0f, 1.0f);
 
-        float new_pwm = 0.5f;
+        float new_pwm = .5f;
         new_pwm += control_P_term * error;
         new_pwm += current_I_value;
         new_pwm += control_D_term * UPDATE_FREQ * (error - prev_error);
         new_pwm = confine(new_pwm, 0.0f, 1.0f);
         prev_error = error;
 
-        current_pwm_value = new_pwm;
+        current_pwm_value = new_pwm;        
 
         if (current_pwm_value > max_pwm) {
             current_pwm_value = max_pwm;
@@ -170,10 +181,24 @@ uint32_t PWMSpindleControl::on_update_speed(uint32_t dummy)
 }
 
 void PWMSpindleControl::turn_on() {
+    // clear output for reverse direction     
+    if(reverse_dir != NULL)
+        reverse_dir->set(false);
     spindle_on = true;
 }
 
+void PWMSpindleControl::turn_on_rev() {
+    // set output for reverse direction     
+    if(reverse_dir != NULL){
+        reverse_dir->set(true);
+        spindle_on = true;
+    }    
+}
+
 void PWMSpindleControl::turn_off() {
+    // clear output for reverse direction     
+    if(reverse_dir != NULL)
+        reverse_dir->set(false);
     spindle_on = false;
 }
 
@@ -184,7 +209,7 @@ void PWMSpindleControl::set_speed(int rpm) {
 
 
 void PWMSpindleControl::report_speed() {
-    THEKERNEL->streams->printf("Current RPM: %5.0f  Target RPM: %5.0f  PWM value: %5.3f\n",
+    THEKERNEL->streams->printf("Current RPM: %5.0f  Target RPM: %5.0f  PWM value: %5.3f \n",
                                current_rpm, target_rpm, current_pwm_value);
 }
 

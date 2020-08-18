@@ -42,7 +42,8 @@ class StepTicker{
 
         // whatever setup the block should register this to know when it is done
         std::function<void()> finished_fnc{nullptr};
-
+        std::array<StepperMotor*, k_max_actuators> motor;
+        
         static StepTicker *getInstance() { return instance; }
 
     private:
@@ -52,7 +53,7 @@ class StepTicker{
 
         float frequency;
         uint32_t period;
-        std::array<StepperMotor*, k_max_actuators> motor;
+        //std::array<StepperMotor*, k_max_actuators> motor;
         std::bitset<k_max_actuators> unstep;
 
         Block *current_block;
