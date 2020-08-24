@@ -21,7 +21,7 @@ gamma_steps_per_mm                           400             # Steps per mm for 
 
 # Planner module configuration : Look-ahead and acceleration configuration
 # See http://smoothieware.org/motion-control
-acceleration                                 50              # Acceleration in mm/second/second.
+acceleration                                 75              # Acceleration in mm/second/second.
 #z_acceleration                              500             # Acceleration for Z only moves in mm/s^2, 0 uses acceleration which is the default. DO NOT SET ON A DELTA
 junction_deviation                           0.005           # See http://smoothieware.org/motion-control#junction-deviation
 #z_junction_deviation                        0.0             # For Z only moves, -1 uses junction_deviation, zero disables junction_deviation on z moves DO NOT SET ON A DELTA
@@ -41,13 +41,13 @@ alpha_current                                .180              # X stepper motor
 #alpha_max_rate                              30000.0          # Maximum rate in mm/min
 
 beta_step_pin                                0.19             # Pin for beta stepper step signal
-beta_dir_pin                                 0.20             # Pin for beta stepper direction, add '!' to reverse direction
+beta_dir_pin                                 0.20!            # Pin for beta stepper direction, add '!' to reverse direction
 beta_en_pin                                  2.8              # Pin for beta enable
 beta_current                                 .180             # Y stepper motor current
 #beta_max_rate                               30000.0         # Maxmimum rate in mm/min
 
 gamma_step_pin                               0.22             # Pin for gamma stepper step signal
-gamma_dir_pin                                2.11             # Pin for gamma stepper direction, add '!' to reverse direction
+gamma_dir_pin                                2.11!             # Pin for gamma stepper direction, add '!' to reverse direction
 gamma_en_pin                                 0.21             # Pin for gamma enable
 gamma_current                                .180             # Z stepper motor current
 #gamma_max_rate                              300.0            # Maximum rate in mm/min
@@ -58,15 +58,13 @@ laser_module_enable                          false           # Whether to activa
 
 ## Spindle Module configuration
 # See http://smoothieware.org/spindle-module
-# settings are for a 400 watt Daedalus BLDC spindle with WS55-180 driver & 48 VDC supply
-# P channel MOSFET attached to pwm pin using 10V from drive for speed control
 
 spindle.enable            true           # set this to false to disable the spindle module
 spindle.type              encoder        # sets the spindle module to encoder mode
-spindle.pwm_pin           2.4            # Required. 
+spindle.pwm_pin           2.4            # Required. speed output to drive 
 spindle.pwm_period        3500           # default 1000, sets the PWM frequency
 spindle.default_rpm       1300           # [max_rpm * .1] defines a min rpm to overcome friction
-spindle.max_rpm           12000          # Default 10000    Maximum RPM at 100% PWM.
+spindle.max_rpm           12000          # [10000] Maximum RPM at 100% PWM.
 spindle.control_P         0.0001         # default 0.0001. P value for the PID controller              
 spindle.control_I         0.00075        # default 0.0001. I value for the PID controller
 spindle.control_D         0.000002       # default 0.0001. D value for the PID controller
@@ -76,25 +74,27 @@ spindle.reverse_dir_pin   2.7            # [Default nc] Used for M4
 spindle.max_error         3000           # [max_rpm * .25] Limit error calculation value RPM 
 spindle.debug             false          # [false] enable troubleshooting
 spindle.update_freq       20             # [20] times per second to update encoder count
-spindle.encoder_select    0              # [0] pick the encoder to use 0=hwencoder 1=swencoder0
+spindle.encoder_select    1              # [0] pick the encoder to use 0=hwencoder 1=swencoder0
 
-swencoder0.enable         false          # [false] creates a software based quad encoder with definable pins
+swencoder0.enable         true           # [false] creates a software based quad encoder with definable pins
 swencoder0.cpr            360            # [360] decoded counts per rev ie: 100 ppr = 400 cpr
 swencoder0.chan_A         0.0            # Required. Interrupt capable pin
 swencoder0.chan_B         0.1            # Required. Interrupt capable pin
 #swencoder0.chan_I         2.0           # Optional. Interrupt capable pin
+swencoder0.inv            true           # [false] invert count direction
 swencoder0.debug          false          # [false] determine correct count direction M3 should count up & M4 down
 
-# encoder is from James Newton MassMind.org, 360 cpr magnetic unit. Any 5 VDC 2 channel single ended will work
-hwencoder.enable          true           # [false] enables hardware based encoder Pins 34,37 & 38 for LPC176x
+
+hwencoder.enable          false          # [false] enables hardware based encoder Pins 34,37 & 38 for LPC176x
 hwencoder.cpr             360            # [360] decoded counts per rev ie: 100 ppr = 400 cpr
 hwencoder.filter          200            # [200] debounce filter based on PCLK cycles
-hwencoder.inv             false          # [false] reverse count direction
+hwencoder.inv             false          # [false] invert count direction
 hwencoder.debug           false          # [false] determine correct count direction M3 should count up & M4 down
 
 tappingcycles.enable            true     # [false] enables G74 & G84
 tappingcycles.ms_update         30       # [50] time is milliseconds between updates
-tappingcycles.encoder_select    0        # [0] pick the encoder to use 0=hwencoder 1=swencoder0
+tappingcycles.encoder_select    1        # [0] pick the encoder to use 0=hwencoder 1=swencoder0
+tappingcycles.rev_delay         250      # [250] milliseconds to wait to change spindle direction
 tappingcycles.debug             false    # [false] enable troubleshooting
 
 ## Switch modules
@@ -108,7 +108,7 @@ switch.fan.output_pin                        2.3              # Pin this module 
 switch.fan.output_type                       pwm              # PWM output settable with S parameter in the input_on_comand
 #switch.fan.max_pwm                          255              # Set max pwm for the pin default is 255
 
-#switch.misc.enable                          true             # Enable this module
+#switch.misc.enable                          false             # Enable this module
 #switch.misc.input_on_command                M42              # Command that will turn this switch on
 #switch.misc.input_off_command               M43              # Command that will turn this switch off
 #switch.misc.output_pin                      2.4              # Pin this module controls
@@ -122,18 +122,18 @@ endstops_enable                              true             # The endstop modu
 #alpha_min_endstop                           nc               # Pin to read min endstop, add a ! to invert if endstop is NO connected to ground
 alpha_max_endstop                            1.28^            # Pin to read max endstop, uncomment this and comment the above if using max endstops
 alpha_homing_direction                       home_to_max      # Or set to home_to_max and set alpha_max and uncomment the alpha_max_endstop
-alpha_min                                    0                # This gets loaded as the current position after homing when home_to_min is set
-alpha_max                                    254              # This gets loaded as the current position after homing when home_to_max is set
-beta_min_endstop                             1.27^            # Pin to read min endstop, add a ! to invert if endstop is NO connected to ground
-#beta_max_endstop                            nc               # Pin to read max endstop, uncomment this and comment the above if using max endstops
-beta_homing_direction                        home_to_min      # Or set to home_to_max and set alpha_max and uncomment the alpha_max_endstop
-beta_min                                     0                # This gets loaded as the current position after homing when home_to_min is set
-beta_max                                     125              # This gets loaded as the current position after homing when home_to_max is set
+alpha_min                                    -250             # This gets loaded as the current position after homing when home_to_min is set
+alpha_max                                    2                # This gets loaded as the current position after homing when home_to_max is set
+#beta_min_endstop                            nc               # Pin to read min endstop, add a ! to invert if endstop is NO connected to ground
+beta_max_endstop                             1.27^            # Pin to read max endstop, uncomment this and comment the above if using max endstops
+beta_homing_direction                        home_to_max      # Or set to home_to_max and set alpha_max and uncomment the alpha_max_endstop
+beta_min                                     -125             # This gets loaded as the current position after homing when home_to_min is set
+beta_max                                     2                # This gets loaded as the current position after homing when home_to_max is set
 #gamma_min_endstop                           nc               # Pin to read min endstop, add a ! to invert if endstop is NO connected to ground
 gamma_max_endstop                            1.25^            # Pin to read max endstop, uncomment this and comment the above if using max endstops
 gamma_homing_direction                       home_to_max      # Or set to home_to_max and set alpha_max and uncomment the alpha_max_endstop
-gamma_min                                    0                # This gets loaded as the current position after homing when home_to_min is set
-gamma_max                                    130              # This gets loaded as the current position after homing when home_to_max is set
+gamma_min                                    -130             # This gets loaded as the current position after homing when home_to_min is set
+gamma_max                                    2                # This gets loaded as the current position after homing when home_to_max is set
 
 alpha_max_travel                             254              # Max travel in mm for alpha/X axis when homing
 beta_max_travel                              135              # Max travel in mm for beta/Y axis when homing
@@ -152,9 +152,9 @@ beta_slow_homing_rate_mm_s                   5               # Beta/Y  slow homi
 gamma_fast_homing_rate_mm_s                  10                # Gamma/Z fast homing feedrate in mm/second
 gamma_slow_homing_rate_mm_s                  5                # Gamma/Z slow homing feedrate in mm/second
 
-alpha_homing_retract_mm                      2                # Distance to retract from the endstop after it is hit for alpha/X
-beta_homing_retract_mm                       2                # Distance to retract from the endstop after it is hit for beta/Y
-gamma_homing_retract_mm                      2                # Distance to retract from the endstop after it is hit for gamma/Z
+alpha_homing_retract_mm                      3                # Distance to retract from the endstop after it is hit for alpha/X
+beta_homing_retract_mm                       3                # Distance to retract from the endstop after it is hit for beta/Y
+gamma_homing_retract_mm                      3                # Distance to retract from the endstop after it is hit for gamma/Z
 
 # Optional order in which axis will home, default is they all home at the same time,
 # If this is set it will force each axis to home one at a time in the specified order
@@ -191,9 +191,9 @@ panel.enable                                 false             # Set to true to 
 
 panel.menu_offset                            0                 # Some panels will need 1 here
 
-panel.alpha_jog_feedrate                     1000              # X jogging feedrate in mm/min
-panel.beta_jog_feedrate                      1000              # Y jogging feedrate in mm/min
-panel.gamma_jog_feedrate                     500               # Z jogging feedrate in mm/min
+panel.alpha_jog_feedrate                     6000              # X jogging feedrate in mm/min
+panel.beta_jog_feedrate                      6000              # Y jogging feedrate in mm/min
+panel.gamma_jog_feedrate                     200               # Z jogging feedrate in mm/min
 
 panel.hotend_temperature                     185               # Temp to set hotend when preheat is selected
 panel.bed_temperature                        60                # Temp to set bed when preheat is selected
