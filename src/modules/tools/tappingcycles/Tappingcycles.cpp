@@ -62,6 +62,7 @@ void Tappingcycles::on_module_loaded()
     this->totalPulses = 0;
     this->last_pulses = 0;
     this->vals_loaded = false;
+    this->is_Tapping = false;
     this->reset_sticky();
 }
 
@@ -132,10 +133,13 @@ void Tappingcycles::tap_hole(Gcode *gcode)
     this->send_gcode("G0%s%s", x, y);
     
     // rapids to retract position (R)
-    this->send_gcode("G0 Z%1.4f", this->sticky_r);    
+    this->send_gcode("G0 Z%1.4f", this->sticky_r);
+
+    THEKERNEL->conveyor->wait_for_idle();    
 
     // start spindle sync
-    start_sync(); 
+    start_sync();
+    THEKERNEL->step_ticker->motor[Z_AXIS]->set_direction(true); 
 
     // start spindle for cycle at S value
     if(this->is_G84) {
@@ -147,42 +151,52 @@ void Tappingcycles::tap_hole(Gcode *gcode)
     int c = 0;
     this->t.start();
     long last_t = this->t.read_ms();
-    long last_pud = last_t;
+    long last_pud = last_t;    
+    this->forward = true;   
+    this->is_Tapping = true;
+    bool reached_bottom = false;
+    int reverse_delay = 0;
 
-    //Added this >>> delete if it hangs
-    THEKERNEL->conveyor->wait_for_idle();
+    while(this->forward == true) {
 
-    while(c < this->target_pulses) {
+        if(c > this->target_pulses && reached_bottom == false) {
+            this->send_gcode("M5");
+            if(this->debug){ THEKERNEL->streams->printf("totalPulses = %i \n", c); }
+            reached_bottom = true;
+        }
         long ct = this->t.read_ms();
         // run function to check encoder counts and set speed
         if(ct >= last_t + this->update_rate) {
             this->calc_speed();
             last_t = ct;
+            if(reached_bottom == true) {
+                reverse_delay++;
+            }
         }
-        // update position every 300ms
-       
+        // update position every 300ms       
         if(ct >= last_pud + 300) {
             this->z_pos_update();
             last_pud = ct;
         }
-        
+        // wait for 15 updates
+        if(reverse_delay == 15) {
+            THEKERNEL->step_ticker->motor[Z_AXIS]->set_direction(false);
+            this->forward = false;
+        }         
         c = this->totalPulses;        
-    }
+    }    
     
-    this->send_gcode("M5");
-    if(this->debug){ THEKERNEL->streams->printf("totalPulses = %i \n", c); }
-    this->z_pos_update();
-    wait_ms(100);
+    this->z_pos_update(); 
+    THEKERNEL->conveyor->wait_for_idle();
+
     if(this->is_G84) {
         this->send_gcode("M4 S%i", this->sticky_s); 
     }else{
         this->send_gcode("M3 S%i", this->sticky_s);
-    }       
-
+    }         
+    
     last_t = this->t.read_ms();
     last_pud = last_t;
-    
-    THEKERNEL->conveyor->wait_for_idle();
 
     while(c > 10) {
         long ct = this->t.read_ms();
@@ -218,8 +232,12 @@ void Tappingcycles::tap_hole(Gcode *gcode)
 }
 
 void Tappingcycles::start_sync()
-{       
-    this->target_pulses = ( this->sticky_z - this->sticky_r ) * this->z_axis_res;
+{     
+    if(this->debug){ THEKERNEL->streams->printf("Sticky_R = %f \n", this->sticky_r); }
+    if(this->debug){ THEKERNEL->streams->printf("Sticky_Z = %f \n", this->sticky_z); }
+    if(this->debug){ THEKERNEL->streams->printf("Z Axis Res = %f \n", this->z_axis_res); }  
+    this->target_pulses = ( this->sticky_r - this->sticky_z ) * this->z_axis_res;
+    if(this->debug){ THEKERNEL->streams->printf("Target Pulses = %i \n", this->target_pulses); }
     this->ratio = this->z_axis_res / this->pulses_per_rev;    
     this->calcVal = this->timeslice * this->ratio * this->sticky_f;
     this->last_c = this->get_count();        
@@ -235,6 +253,7 @@ void Tappingcycles::calc_speed()
     long c = this->get_count();
     int val = (1 / ((c - this->last_c) * this->calcVal)) * 1000000;
     this->last_c = c;
+    /*
     if((val < 0) && (this->forward == true)) {
         THEKERNEL->step_ticker->motor[Z_AXIS]->set_direction(true);
         this->forward = false;
@@ -243,6 +262,7 @@ void Tappingcycles::calc_speed()
         THEKERNEL->step_ticker->motor[Z_AXIS]->set_direction(false);
         this->forward = true;        
     }
+    */
     this->pulse_timer.attach_us(this, &Tappingcycles::do_step, abs(val));   
 }
 

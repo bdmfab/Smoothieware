@@ -18,6 +18,7 @@
 #include "modules/tools/switch/SwitchPool.h"
 #include "modules/tools/temperatureswitch/TemperatureSwitch.h"
 #include "modules/tools/drillingcycles/Drillingcycles.h"
+#include "modules/tools/tappingcycles/Tappingcycles.h"
 #include "FilamentDetector.h"
 #include "MotorDriverControl.h"
 
@@ -182,6 +183,9 @@ void init() {
     #endif
     #ifndef NO_TOOLS_DRILLINGCYCLES
     kernel->add_module( new(AHB0) Drillingcycles() );
+    #endif
+    #ifndef NO_TOOLS_TAPPINGCYCLES
+    kernel->add_module( new(AHB0) Tappingcycles() );
     #endif
     #ifndef NO_TOOLS_FILAMENTDETECTOR
     kernel->add_module( new(AHB0) FilamentDetector() );

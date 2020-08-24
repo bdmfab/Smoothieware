@@ -27,6 +27,7 @@ swencoder0.cpr                      > decoded counts per revolution as int [360]
 swencoder0.chan_A                   > interrupt capable pin for channel A
 swencoder0.chan_B                   > interrupt capable pin for channel B
 swencoder0.chan_I                   > interrupt capable pin for INDEX channel - optional
+swencoder0.inv                      > invert the count direction
 swencoder0.debug                    > set true to determine correct count direction [false]
 
 *********************************************************************************************************
@@ -51,8 +52,8 @@ class SwEncoder0 : public Module{
         int get_count_per_rev();
         long read_enc();
         void reset();
-        void disable_enc();
-        void enable_enc();
+        //void disable_enc();
+        //void enable_enc();
         long get_revs();
         static SwEncoder0* instance;
 
@@ -67,13 +68,14 @@ class SwEncoder0 : public Module{
         int decoding_type;
         // value from config
         bool debug;
+        bool inv;
         //void on_pin_rise();
         void encode();
         void on_index();
         void debug_out();
         // count per rev
         int cpr;
-        bool has_I;
+        //bool has_I;
 
         int currState;
         int prevState;

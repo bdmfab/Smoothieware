@@ -66,7 +66,8 @@ class Tappingcycles : public Module
         bool cycle_started; // cycle status
         bool vals_loaded;
         bool forward;
-        bool is_G84;        
+        bool is_G84;  
+        bool is_Tapping;      
         int  retract_type;  // rretract type
         
         // values from config

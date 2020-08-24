@@ -32,6 +32,7 @@
 #define chan_A_checksum                         CHECKSUM("chan_A")
 #define chan_B_checksum                         CHECKSUM("chan_B")
 #define chan_I_checksum                         CHECKSUM("chan_I")
+#define inv_checksum                            CHECKSUM("inv")
 #define debug_checksum                          CHECKSUM("debug")
 
 SwEncoder0* SwEncoder0::instance;
@@ -49,19 +50,26 @@ void SwEncoder0::on_module_loaded()
         return;
     }
 
+    this->inv = THEKERNEL->config->value( swencoder0_checksum, inv_checksum )->by_default(false)->as_bool();
     this->debug = THEKERNEL->config->value( swencoder0_checksum, debug_checksum )->by_default(false)->as_bool();
     this->decoding_type = 4;
     
     // Get the pin for channel A interrupt
     {
         Pin *smoothie_pin = new Pin();
-        smoothie_pin->from_string(THEKERNEL->config->value(swencoder0_checksum, chan_A_checksum)->by_default("nc")->as_string());
+        if(this->inv == false) {
+            smoothie_pin->from_string(THEKERNEL->config->value(swencoder0_checksum, chan_A_checksum)->by_default("nc")->as_string());
+        }else{
+            smoothie_pin->from_string(THEKERNEL->config->value(swencoder0_checksum, chan_B_checksum)->by_default("nc")->as_string());
+        }       
+        
         smoothie_pin->as_input();
         if (smoothie_pin->port_number == 0 || smoothie_pin->port_number == 2) {
             PinName pinname = port_pin((PortName)smoothie_pin->port_number, smoothie_pin->pin);
             chan_A = new mbed::InterruptIn(pinname);
             chan_A->rise(this, &SwEncoder0::encode);
             NVIC_SetPriority (SysTick_IRQn, 5);
+            //NVIC_SetPriority(EINT3_IRQn, 12);
             chan_A->fall(this, &SwEncoder0::encode);
             NVIC_SetPriority (SysTick_IRQn, 5);                                   
         } else {
@@ -73,9 +81,13 @@ void SwEncoder0::on_module_loaded()
     }
 
     // Get the pin for channel B interrupt
-    {
+    {        
         Pin *smoothie_pin = new Pin();
-        smoothie_pin->from_string(THEKERNEL->config->value(swencoder0_checksum, chan_B_checksum)->by_default("nc")->as_string());
+        if(this->inv == false) {
+            smoothie_pin->from_string(THEKERNEL->config->value(swencoder0_checksum, chan_B_checksum)->by_default("nc")->as_string());
+        }else{
+            smoothie_pin->from_string(THEKERNEL->config->value(swencoder0_checksum, chan_A_checksum)->by_default("nc")->as_string());            
+        }    
         smoothie_pin->as_input();
         if (smoothie_pin->port_number == 0 || smoothie_pin->port_number == 2) {
             PinName pinname = port_pin((PortName)smoothie_pin->port_number, smoothie_pin->pin);
@@ -94,7 +106,7 @@ void SwEncoder0::on_module_loaded()
         }
         delete smoothie_pin;
     } 
-
+    /*
     // Get the pin for channel I interrupt (optional)
     {
         Pin *smoothie_pin = new Pin();
@@ -105,13 +117,15 @@ void SwEncoder0::on_module_loaded()
             chan_I = new mbed::InterruptIn(pinname);            
                 chan_I->rise(this, &SwEncoder0::on_index);
                 NVIC_SetPriority (SysTick_IRQn, 5); 
-                has_I = true;                                
+                this->has_I = true;                                
         } else {
             THEKERNEL->streams->printf("Error: Channel I has to be on P0 or P2.\n");
-            has_I = false;            
+            this->has_I = false;            
         }
         delete smoothie_pin;
-    }   
+    }  
+    */ 
+    
 
     // get count per rev from config
     cpr = THEKERNEL->config->value(swencoder0_checksum, cpr_checksum)->by_default(360)->as_int();
@@ -167,7 +181,7 @@ void SwEncoder0::encode()
             if (change == 0) {
                 change = -1;
             } 
-            this->pulses -= change;
+            this->pulses -= change;           
         } 
     } 
     this->prevState = this->currState;     
@@ -231,7 +245,7 @@ void SwEncoder0::debug_out()
     long c = this->read_enc();
     THEKERNEL->streams->printf("swencoder0 = %ld \n", c);
 }
-
+/*
 void SwEncoder0::disable_enc()
 {
     this->chan_A->rise(NULL);
@@ -251,5 +265,5 @@ void SwEncoder0::enable_enc()
     if(this->has_I)    
         chan_I->rise(this, &SwEncoder0::on_index);
 }
-
+*/
 
