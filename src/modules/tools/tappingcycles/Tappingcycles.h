@@ -25,6 +25,9 @@ Config Values>
    tappingcycles.ms_update          > time between updates in ms [50]
    tappingcycles.encoder_select     > what encoder to use 0:hwencoder 1:swencoder0 [0]  
    tappingcycles.debug              > enable troubleshooting features [false]
+   tappingcycles.rev_delay          > delay in milliseconds to wait for spindle to stop on downward movement [250]
+   tappingcycles.inv_z              > set to true if z axis travels backwards
+
    
 */
 
@@ -75,6 +78,7 @@ class Tappingcycles : public Module
         int encoder_select;
         bool debug;
         int pulses_per_rev;      // count per rev of encoder
+        int rev_delay;
 
         float initial_z;    // Initial-Z
         float r_plane;      // R-Plane

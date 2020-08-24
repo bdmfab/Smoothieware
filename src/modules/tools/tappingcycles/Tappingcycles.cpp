@@ -30,6 +30,7 @@
 #define ms_update_checksum          CHECKSUM("ms_update")
 #define encoder_select_checksum     CHECKSUM("encoder_select")
 #define debug_checksum              CHECKSUM("debug")
+#define rev_delay_checksum           CHECKSUM("rev_delay")
 
 Tappingcycles::Tappingcycles() {}
 
@@ -44,7 +45,8 @@ void Tappingcycles::on_module_loaded()
 
     this->update_rate = THEKERNEL->config->value(tappingcycles_checksum, ms_update_checksum)->by_default(50)->as_int(); 
     this->debug = THEKERNEL->config->value(tappingcycles_checksum, debug_checksum)->by_default(false)->as_bool();   
-    this->encoder_select = THEKERNEL->config->value(tappingcycles_checksum, encoder_select_checksum)->by_default(0)->as_int(); 
+    this->encoder_select = THEKERNEL->config->value(tappingcycles_checksum, encoder_select_checksum)->by_default(0)->as_int();
+    this->rev_delay = THEKERNEL->config->value(tappingcycles_checksum, rev_delay_checksum)->by_default(250)->as_int(); 
     
     // Settings
     this->on_config_reload(this);
@@ -155,31 +157,31 @@ void Tappingcycles::tap_hole(Gcode *gcode)
     this->forward = true;   
     this->is_Tapping = true;
     bool reached_bottom = false;
-    int reverse_delay = 0;
+    long start_delay;
 
     while(this->forward == true) {
+
+        long ct = this->t.read_ms();
 
         if(c > this->target_pulses && reached_bottom == false) {
             this->send_gcode("M5");
             if(this->debug){ THEKERNEL->streams->printf("totalPulses = %i \n", c); }
-            reached_bottom = true;
+            start_delay = ct;
+            reached_bottom = true;            
         }
-        long ct = this->t.read_ms();
+        
         // run function to check encoder counts and set speed
         if(ct >= last_t + this->update_rate) {
             this->calc_speed();
-            last_t = ct;
-            if(reached_bottom == true) {
-                reverse_delay++;
-            }
+            last_t = ct;            
         }
         // update position every 300ms       
         if(ct >= last_pud + 300) {
             this->z_pos_update();
             last_pud = ct;
         }
-        // wait for 15 updates
-        if(reverse_delay == 15) {
+        
+        if(reached_bottom == true && ct > start_delay + this->rev_delay) {
             THEKERNEL->step_ticker->motor[Z_AXIS]->set_direction(false);
             this->forward = false;
         }         
